@@ -8,7 +8,7 @@
 :root{--pill:rgba(20,40,20,.62);--ink:#f6f3e6}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--pill:rgba(8,18,8,.72);--ink:#f2efe0}}
 :root[data-theme="dark"]{--pill:rgba(8,18,8,.72);--ink:#f2efe0}
-html,body{margin:0;height:100%;background:#02040c;overflow:hidden;touch-action:none}
+html,body{margin:0;height:100%;background:#02040c;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 canvas{display:block;position:fixed;inset:0;width:100%;height:100%;cursor:grab}
 #hud{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);max-width:calc(100% - 28px);box-sizing:border-box;padding:9px 18px;border-radius:999px;background:var(--pill);color:var(--ink);font:500 14px/1.35 Georgia,"Times New Roman",serif;text-align:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none}
 #pad{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;gap:10px}
@@ -21,6 +21,9 @@ canvas{display:block;position:fixed;inset:0;width:100%;height:100%;cursor:grab}
 #mp button,#mp label,#mp select{background:#06210f;color:#39ff88;border:1px solid #1fbf6a;border-radius:6px;padding:8px 12px;font:inherit;text-align:left}
 #vol{width:150px}
 #hud:empty{display:none}
+#pad,#pad button,#joy,#joy i{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:none}
+#pad button{outline:none;cursor:pointer}
+#pad button:active{transform:scale(.92);filter:brightness(1.25)}
 #pad{align-items:flex-end}
 #dp{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(2,54px);gap:8px}
 #bf{grid-column:2;grid-row:1}#bl{grid-column:1;grid-row:2}#bb{grid-column:2;grid-row:2}#br{grid-column:3;grid-row:2}
@@ -696,7 +699,7 @@ function ambUpdateOld(k,dt){
  if(buzzP){const b=crit[0].g.position;setP(buzzP,b.x,b.y,b.z);buzzG.gain.value=crit[0].g.visible?.07:0}
 }
 // joystick táctil, presentación inicial y viaje a los letreros
-var intro={on:true,go:false,t:0,dur:8.5},fly={on:false},joy={x:0,y:0},lastTap={b:null,t:0},turn=0;
+var intro={on:true,go:false,t:0,dur:4.6},fly={on:false},joy={x:0,y:0},lastTap={b:null,t:0},turn=0;
 ['bl','br'].forEach(id=>{const el=document.getElementById(id),k=id==='bl'?1:-1;let on=false;el.addEventListener('pointerdown',e=>{e.stopPropagation();on=true;turn=k});['pointerup','pointerleave','pointercancel'].forEach(ev=>el.addEventListener(ev,()=>{if(on){on=false;turn=0}}))});
 {const el=document.getElementById('joy'),kn=el.firstElementChild;let id=null;
  const set=e=>{const r=el.getBoundingClientRect();let dx=(e.clientX-(r.left+r.width/2))/(r.width/2),dy=(e.clientY-(r.top+r.height/2))/(r.height/2);const m=Math.hypot(dx,dy);if(m>1){dx/=m;dy/=m}joy.x=dx;joy.y=-dy;kn.style.transform='translate('+dx*38+'px,'+dy*38+'px)'};
@@ -706,16 +709,20 @@ var intro={on:true,go:false,t:0,dur:8.5},fly={on:false},joy={x:0,y:0},lastTap={b
 function introNav(dt){
  if(!intro.on)return false;
  let u=0;if(intro.go){intro.t+=dt;u=Math.min(1,intro.t/intro.dur)}
- const e=u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2,ang=lerp(-1.6,0,e)+(intro.go?0:Math.sin(performance.now()/7000)*.05),rad=lerp(80,30,e),h=lerp(55,1.4,e);cam.fov=lerp(34,62,e);cam.updateProjectionMatrix();
+ const e=1-Math.pow(1-u,2.6),ang=lerp(-1.6,0,e)+(intro.go?0:Math.sin(performance.now()/7000)*.05),rad=lerp(80,30,e),h=lerp(55,1.4,e);cam.fov=lerp(34,62,e);cam.updateProjectionMatrix();
  cam.position.set(Math.sin(ang)*rad,h,Math.cos(ang)*rad);cam.lookAt(0,lerp(2,-2.6,e),lerp(0,-20,e));
  if(intro.go){gardenFog.near=lerp(1,30,u);gardenFog.far=lerp(14,130,Math.pow(u,.6))}
  if(u>=1){intro.on=false;pos.set(0,0,30);eye=1.4;yaw=0;pitch=-.08;vel.set(0,0,0);gardenFog.near=30;gardenFog.far=130;cam.fov=62;cam.updateProjectionMatrix();document.body.classList.remove('cine')}
  return true}
 function startIntro(){if(intro.go)return;intro.go=true;intro.t=0;document.body.classList.add('cine');
- for(const p of plants){p.grow=-(Math.hypot(p.g.position.x,p.g.position.z)*.07+R(0,.3));p.open=.02}
+ for(const p of plants){p.grow=-(Math.hypot(p.g.position.x,p.g.position.z)*.04+R(0,.2));p.open=.02}
  }
 
 addEventListener('pointerdown',()=>{if(intro.on&&intro.go&&intro.t>.8){intro.t=intro.dur;for(const p of plants)p.grow=Math.max(p.grow,-.3)}});
+document.querySelectorAll('#pad,#pad button,#joy').forEach(el=>{el.setAttribute('draggable','false');el.addEventListener('contextmenu',e=>e.preventDefault());el.addEventListener('dragstart',e=>e.preventDefault())});
+document.querySelectorAll('#dp button,#joy').forEach(el=>el.addEventListener('touchstart',e=>e.preventDefault(),{passive:false}));
+document.querySelectorAll('#pad button').forEach(b=>b.setAttribute('role','button'));
+document.addEventListener('selectstart',e=>{const t=e.target.nodeType===1?e.target:e.target.parentElement;if(t&&t.closest('#pad,#joy'))e.preventDefault()});
 function flyNav(dt){
  if(!fly.on)return false;
  if(Math.abs(joy.x)+Math.abs(joy.y)>.15||keys.KeyW||keys.KeyS||keys.KeyA||keys.KeyD||keys.ArrowUp||keys.ArrowDown){fly.on=false;return false}
